@@ -1,0 +1,45 @@
+name: Codex AI Agent
+
+permissions:
+  contents: write
+
+on:
+  issue_comment:
+    types: [created]
+
+jobs:
+  run-agent:
+    if: contains(github.event.comment.body, '@codex')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install dependencies
+        run: pip install google-generativeai
+
+      - name: Run AI Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ISSUE_TITLE: ${{ github.event.issue.title }}
+          COMMENT: ${{ github.event.comment.body }}
+        run: python scripts/agent.py
+
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v5
+        with:
+          branch: codex-${{ github.event.issue.number }}
+          title: "Codex AI: ${{ github.event.issue.title }}"
+          body: |
+            🤖 Automated fix triggered by @codex
+
+            Comment:
+            ${{ github.event.comment.body }}
